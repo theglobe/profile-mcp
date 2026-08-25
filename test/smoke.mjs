@@ -34,6 +34,53 @@ check("server/discover sends the versions and the capabilities", () => {
   assert.equal(r.cacheScope, "public");
 });
 
+check("get_profile_summary gives the triage fields", () => {
+  const res = post(
+    { "MCP-Protocol-Version": MODERN, "Mcp-Method": "tools/call", "Mcp-Name": "get_profile_summary" },
+    { jsonrpc: "2.0", id: 20, method: "tools/call",
+      params: { name: "get_profile_summary", arguments: {}, _meta: meta } },
+  );
+  const s = json(res).result.structuredContent;
+  for (const k of ["name", "headline", "location", "availability", "focus", "highlights", "topSkills", "education", "links"]) {
+    assert.ok(k in s, `summary must have ${k}`);
+  }
+  assert.ok(s.highlights.length > 0);
+});
+
+check("query_profile finds the MCP work", () => {
+  const res = post(
+    { "MCP-Protocol-Version": MODERN, "Mcp-Method": "tools/call", "Mcp-Name": "query_profile" },
+    { jsonrpc: "2.0", id: 21, method: "tools/call",
+      params: { name: "query_profile", arguments: { topic: "MCP" }, _meta: meta } },
+  );
+  const r = json(res).result;
+  const m = r.structuredContent.matches;
+  assert.ok(m.length > 0, "must find a match for MCP");
+  assert.equal(m[0].title.startsWith("profile-mcp"), true, "profile-mcp must rank first");
+  assert.ok(r.content[0].text.includes("profile-mcp"));
+});
+
+check("query_profile ranks C# performance onto MandelbrotSIMD", () => {
+  const res = post(
+    { "MCP-Protocol-Version": MODERN, "Mcp-Method": "tools/call", "Mcp-Name": "query_profile" },
+    { jsonrpc: "2.0", id: 22, method: "tools/call",
+      params: { name: "query_profile", arguments: { topic: "simd performance" }, _meta: meta } },
+  );
+  const m = json(res).result.structuredContent.matches;
+  assert.ok(m.some((x) => x.title.startsWith("MandelbrotSIMD")));
+});
+
+check("query_profile with no match lists the known topics", () => {
+  const res = post(
+    { "MCP-Protocol-Version": MODERN, "Mcp-Method": "tools/call", "Mcp-Name": "query_profile" },
+    { jsonrpc: "2.0", id: 23, method: "tools/call",
+      params: { name: "query_profile", arguments: { topic: "underwater basket weaving" }, _meta: meta } },
+  );
+  const s = json(res).result.structuredContent;
+  assert.deepEqual(s.matches, []);
+  assert.ok(s.knownTopics.includes("mcp"));
+});
+
 check("tools/list sends a cache time and a constant order", () => {
   const res = post(
     { "MCP-Protocol-Version": MODERN, "Mcp-Method": "tools/list" },
@@ -41,7 +88,7 @@ check("tools/list sends a cache time and a constant order", () => {
   );
   const r = json(res).result;
   const names = r.tools.map((t) => t.name);
-  assert.deepEqual(names, ["get_bio", "get_contact_info", "list_projects", "list_skills"]);
+  assert.deepEqual(names, ["get_bio", "get_contact_info", "get_profile_summary", "list_projects", "list_skills", "query_profile"]);
   assert.deepEqual(names, [...names].sort());
   assert.equal(typeof r.ttlMs, "number");
 });

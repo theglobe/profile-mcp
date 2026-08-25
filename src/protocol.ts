@@ -1,7 +1,7 @@
 
 import {
-  BIO, CONTACT, INSTRUCTIONS, PROFILE_URI, PROJECTS,
-  SERVER_NAME, SERVER_VERSION, SKILLS,
+  AVAILABILITY, BIO, CONTACT, EDUCATION, HEADLINE, INSTRUCTIONS, LOCATION,
+  PROFILE_URI, PROJECTS, SERVER_NAME, SERVER_VERSION, SKILLS,
 } from "./content.js";
 
 export const MODERN_VERSIONS = ["2026-07-28"] as const;
@@ -62,6 +62,15 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
+    name: "get_profile_summary",
+    title: "Get the profile summary",
+    description:
+      "The complete profile in one request: headline, location, work status, " +
+      "focus, the strongest work, the main skills, education and links. Call " +
+      "this first.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
     name: "list_projects",
     title: "List projects",
     description: "The projects and the work.",
@@ -72,6 +81,26 @@ const TOOLS = [
     title: "List skills",
     description: "The technical and professional skills.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
+  },
+  {
+    name: "query_profile",
+    title: "Query the profile",
+    description:
+      "Search the profile for a topic and get the evidence behind it. Give a " +
+      "subject, a technology or a skill, for example \"MCP\", \"C# " +
+      "performance\", \"cryptography\" or \"physics\". The result gives " +
+      "the projects, skills and education that match, with the detail.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        topic: {
+          type: "string",
+          description: "The subject, technology or skill to search for.",
+        },
+      },
+      required: ["topic"],
+      additionalProperties: false,
+    },
   },
 ] as const;
 // Keep this alphabetical order. The specification needs a constant order.
@@ -87,10 +116,72 @@ const RESOURCES = [
 ] as const;
 
 function profileDocument(): Json {
-  return { bio: BIO, skills: SKILLS, projects: PROJECTS, contact: CONTACT };
+  return {
+    name: "Jaroslav Kazejev",
+    headline: HEADLINE,
+    location: LOCATION,
+    availability: AVAILABILITY,
+    bio: BIO,
+    skills: SKILLS,
+    projects: PROJECTS,
+    education: EDUCATION,
+    contact: CONTACT,
+  };
 }
 
-function callTool(name: string): { text: string; structured: Json } | null {
+function profileSummary(): Json {
+  return {
+    name: "Jaroslav Kazejev",
+    headline: HEADLINE,
+    location: LOCATION,
+    availability: AVAILABILITY,
+    focus: "AI engineering and agent infrastructure",
+    highlights: PROJECTS.map((p) => ({
+      name: p.name, year: p.year, summary: p.summary, url: p.url,
+    })),
+    topSkills: SKILLS.filter((s) => s.category === "ai" || s.evidence !== undefined)
+      .map((s) => s.name),
+    education: EDUCATION.map((e) => ({
+      qualification: e.qualification, institution: e.institution, year: e.year,
+    })),
+    links: CONTACT,
+    note: "Call query_profile with a topic for the evidence behind any item.",
+  };
+}
+
+interface Match { kind: string; title: string; detail: string; url?: string; score: number }
+
+function searchProfile(topic: string): Match[] {
+  const terms = topic.toLowerCase().split(/[^a-z0-9#+.]+/i).filter((t) => t.length > 1);
+  if (terms.length === 0) return [];
+  const score = (hay: string[], weight: number[]): number => {
+    let total = 0;
+    hay.forEach((field, i) => {
+      const f = field.toLowerCase();
+      for (const t of terms) if (f.includes(t)) total += weight[i];
+    });
+    return total;
+  };
+  const out: Match[] = [];
+  for (const p of PROJECTS) {
+    const n = score([p.name, p.tags.join(" "), p.summary, p.detail], [6, 5, 3, 1]);
+    if (n > 0) out.push({ kind: "project", title: `${p.name} (${p.year})`, detail: p.detail, url: p.url, score: n });
+  }
+  for (const e of EDUCATION) {
+    const n = score([e.qualification, e.tags.join(" "), e.institution, e.detail], [5, 5, 3, 1]);
+    if (n > 0) out.push({ kind: "education", title: `${e.qualification}, ${e.institution} (${e.year})`, detail: e.detail, url: e.url, score: n });
+  }
+  for (const s of SKILLS) {
+    const n = score([s.name, s.category, s.evidence ?? ""], [6, 3, 2]);
+    if (n > 0) {
+      const ev = s.evidence ? ` Evidence: ${s.evidence}.` : "";
+      out.push({ kind: "skill", title: s.name, detail: `Category: ${s.category}.${ev}`, score: n });
+    }
+  }
+  return out.sort((a, b) => b.score - a.score);
+}
+
+function callTool(name: string, args: Json): { text: string; structured: Json } | null {
   switch (name) {
     case "get_bio":
       return { text: BIO, structured: { bio: BIO } };
@@ -100,6 +191,27 @@ function callTool(name: string): { text: string; structured: Json } | null {
       return { text: JSON.stringify(PROJECTS, null, 2), structured: { projects: PROJECTS } };
     case "get_contact_info":
       return { text: JSON.stringify(CONTACT, null, 2), structured: { contact: CONTACT } };
+    case "get_profile_summary": {
+      const s = profileSummary();
+      return { text: JSON.stringify(s, null, 2), structured: s };
+    }
+    case "query_profile": {
+      const topic = typeof args.topic === "string" ? args.topic : "";
+      const matches = searchProfile(topic);
+      if (matches.length === 0) {
+        const topics = [...new Set(PROJECTS.flatMap((p) => p.tags).concat(EDUCATION.flatMap((e) => e.tags)))].sort();
+        const text = `No match for "${topic}". Known topics: ${topics.join(", ")}.`;
+        return { text, structured: { topic, matches: [], knownTopics: topics } };
+      }
+      const lines = matches.map((m) => {
+        const url = m.url ? `\n  ${m.url}` : "";
+        return `[${m.kind}] ${m.title}\n  ${m.detail}${url}`;
+      });
+      return {
+        text: `Matches for "${topic}":\n\n${lines.join("\n\n")}`,
+        structured: { topic, matches: matches.map(({ score: _s, ...m }) => m) },
+      };
+    }
     default:
       return null;
   }
@@ -172,7 +284,8 @@ function handleModern(id: unknown, method: string, params: Json): { body: Json; 
 
     case "tools/call": {
       const name = typeof params.name === "string" ? params.name : "";
-      const called = callTool(name);
+      const args = typeof params.arguments === "object" && params.arguments !== null ? (params.arguments as Json) : {};
+      const called = callTool(name, args);
       if (!called) {
         return { status: 200, body: err(id, INVALID_PARAMS, `Unknown tool: ${name}`) };
       }
@@ -246,7 +359,8 @@ function handleLegacy(id: unknown, method: string, params: Json): { body: Json; 
 
     case "tools/call": {
       const name = typeof params.name === "string" ? params.name : "";
-      const called = callTool(name);
+      const args = typeof params.arguments === "object" && params.arguments !== null ? (params.arguments as Json) : {};
+      const called = callTool(name, args);
       if (!called) {
         return { status: 200, body: err(id, INVALID_PARAMS, `Unknown tool: ${name}`) };
       }
