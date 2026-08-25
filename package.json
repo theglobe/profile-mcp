@@ -1,0 +1,19 @@
+{
+  "name": "profile-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal MCP server for kazejev.com, running on Cloudflare Workers.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.test.json",
+    "test": "npm run build && node test/smoke.mjs",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260823.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.125.0"
+  }
+}
