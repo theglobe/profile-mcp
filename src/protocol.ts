@@ -65,9 +65,8 @@ const TOOLS = [
     name: "get_profile_summary",
     title: "Get the profile summary",
     description:
-      "The complete profile in one request: headline, location, work status, " +
-      "focus, the strongest work, the main skills, education and links. Call " +
-      "this first.",
+      "The complete profile in one response: headline, location, work status, " +
+      "focus, the strongest work, the main skills, education and links.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -86,10 +85,10 @@ const TOOLS = [
     name: "query_profile",
     title: "Query the profile",
     description:
-      "Search the profile for a topic and get the evidence behind it. Give a " +
-      "subject, a technology or a skill, for example \"MCP\", \"C# " +
-      "performance\", \"cryptography\" or \"physics\". The result gives " +
-      "the projects, skills and education that match, with the detail.",
+      "Searches the profile for a topic and returns the evidence behind it. " +
+      "The topic is a subject, a technology or a skill, for example \"MCP\", " +
+      "\"C# performance\", \"cryptography\" or \"physics\". The result " +
+      "gives the projects, skills and education that match, with the detail.",
     inputSchema: {
       type: "object",
       properties: {
@@ -145,7 +144,7 @@ function profileSummary(): Json {
       qualification: e.qualification, institution: e.institution, year: e.year,
     })),
     links: CONTACT,
-    note: "Call query_profile with a topic for the evidence behind any item.",
+    note: "query_profile takes a topic and returns the evidence behind any item.",
   };
 }
 

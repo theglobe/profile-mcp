@@ -9,9 +9,10 @@ export const SERVER_VERSION = "0.3.0";
 
 export const INSTRUCTIONS =
   "This server is read-only. It gives the professional profile of Jaroslav " +
-  "Kazejev, a software engineer who moves into AI engineering. Call " +
-  "get_profile_summary first for a complete overview in one request. Call " +
-  "query_profile with a topic for the evidence behind any claim.";
+  "Kazejev, a software engineer who moves into AI engineering. " +
+  "get_profile_summary returns the complete profile in one response. " +
+  "query_profile takes a topic and returns the matching projects, skills and " +
+  "education.";
 
 export const HEADLINE =
   "Software engineer moving into AI engineering. Builds LLM agents, bots and " +
