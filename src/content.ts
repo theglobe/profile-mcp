@@ -5,7 +5,7 @@
 
 // This name must agree with serverInfo.name in the published server card.
 export const SERVER_NAME = "kazejev-personal";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.0";
 
 export const INSTRUCTIONS =
   "This server is read-only. It gives the professional profile of Jaroslav " +
@@ -14,8 +14,8 @@ export const INSTRUCTIONS =
   "query_profile with a topic for the evidence behind any claim.";
 
 export const HEADLINE =
-  "Software engineer moving into AI engineering. Physics background from KTH. " +
-  "Builds agent infrastructure in C#, Python and TypeScript.";
+  "Software engineer moving into AI engineering. Builds LLM agents, bots and " +
+  "the MCP tooling that agents use. Physics background from KTH.";
 
 export const LOCATION = "Stockholm, Sweden";
 
@@ -28,10 +28,19 @@ His background is C# and .NET, Java on Android, Python and shell scripting. He
 holds a master's degree in physics from KTH.
 
 He now moves into AI engineering. He works on the layer between models and the
-systems they operate on: tools, protocols and the interfaces that agents use.
-The server that answers this request is his own work. It follows the MCP
-2026-07-28 revision, and he wrote it in the weeks after that revision was
-published.`;
+systems they operate on: tools, protocols, memory and the interfaces that
+agents use.
+
+He builds LLM agents that run unattended. Sprout Buddy is a Telegram bot with a
+tool-calling agent, fifteen tools, persistent memory and a reminder loop that
+sends messages without a prompt from the user.
+
+He also builds the tooling that agents consume. The server that answers this
+request is his own work. It follows the MCP 2026-07-28 revision, and he wrote
+it in the weeks after that revision was published.
+
+He works with AI coding agents daily, and both projects above were built that
+way.`;
 
 export interface Skill {
   name: string;
@@ -40,8 +49,12 @@ export interface Skill {
 }
 
 export const SKILLS: Skill[] = [
+  { name: "LLM agents and tool calling", category: "ai", evidence: "Sprout Buddy" },
   { name: "Model Context Protocol (MCP)", category: "ai", evidence: "profile-mcp" },
-  { name: "Agent tooling and tool design", category: "ai", evidence: "profile-mcp" },
+  { name: "Agent tooling and tool design", category: "ai", evidence: "profile-mcp, Sprout Buddy" },
+  { name: "Agent memory and scheduled autonomy", category: "ai", evidence: "Sprout Buddy" },
+  { name: "Work with AI coding agents", category: "ai", evidence: "profile-mcp, Sprout Buddy" },
+  { name: "Conversational bots", category: "ai", evidence: "Sprout Buddy" },
   { name: "Python", category: "language" },
   { name: "C#", category: "language", evidence: "MandelbrotSIMD" },
   { name: ".NET", category: "platform", evidence: "MandelbrotSIMD" },
@@ -65,6 +78,26 @@ export interface Project {
 
 export const PROJECTS: Project[] = [
   {
+    name: "Sprout Buddy",
+    year: "2026",
+    summary:
+      "A Telegram bot that looks after a person's houseplants through ordinary " +
+      "conversation. An LLM agent with fifteen tools, memory and reminders.",
+    detail:
+      "TypeScript, Express and Zod on Node, with PostgreSQL on Neon, deployed " +
+      "on Fly.io. A tool-calling agent gives the model fifteen tools: plants, " +
+      "care history, reminders and a small per-user memory that survives " +
+      "between conversations. A background loop checks each minute and sends " +
+      "a due reminder to the user without a prompt. The reminders keep the " +
+      "clock at the user's home through a daylight-saving change, and an " +
+      "occurrence missed during a deploy is skipped and not replayed. The " +
+      "agent has a per-user quota and a tool that sends the privacy notice. " +
+      "The model endpoint is any OpenAI-compatible provider.",
+    url: "https://t.me/sproutbuddy_bot",
+    tags: ["ai", "agents", "llm", "tool-calling", "bots", "telegram",
+           "typescript", "postgres", "memory", "automation"],
+  },
+  {
     name: "profile-mcp",
     year: "2026",
     summary:
@@ -80,7 +113,8 @@ export const PROJECTS: Project[] = [
       "on list results. The site also publishes a SEP-1649 server card at " +
       "/.well-known/mcp/server-card.json for agent discovery.",
     url: "https://github.com/theglobe/profile-mcp",
-    tags: ["ai", "mcp", "agents", "typescript", "cloudflare", "protocol", "api"],
+    tags: ["ai", "mcp", "agents", "typescript", "cloudflare", "protocol", "api",
+           "tool-calling"],
   },
   {
     name: "MandelbrotSIMD",
