@@ -1,16 +1,21 @@
 /**
- * MCP protocol handling, transport-agnostic and dependency-free.
+ * The MCP methods. This file is independent of the transport and has no
+ * dependencies.
  *
- * This server is dual-era (see spec "Versioning and Compatibility"):
+ * The server supports two protocol eras. Refer to the specification, section
+ * "Versioning and Compatibility".
  *
- *   - Modern (2026-07-28): stateless. No initialize handshake, no session id.
- *     Every request carries its protocol version and client identity in
- *     `_meta`, mirrored into HTTP headers which the server must validate.
- *   - Legacy (2025-03-26 .. 2025-11-25): the initialize/initialized handshake.
- *     Kept because most deployed clients still speak it.
+ *   - Modern (2026-07-28): the server keeps no state. There is no initialize
+ *     handshake and there is no session identifier. Each request contains the
+ *     protocol version and the client identity in `_meta`. The client also puts
+ *     these values in HTTP headers. The server must examine the headers.
+ *   - Legacy (2025-03-26 to 2025-11-25): the client and the server do the
+ *     initialize handshake. The server keeps this era because most clients
+ *     still use it.
  *
- * Era is selected per request: an `MCP-Protocol-Version` header naming a modern
- * version selects modern handling, anything else falls back to legacy.
+ * The server selects the era for each request. If the `MCP-Protocol-Version`
+ * header shows a modern version, the server uses the modern rules. If it does
+ * not, the server uses the legacy rules.
  */
 
 import {
@@ -24,7 +29,7 @@ export const SUPPORTED_VERSIONS: string[] = [...MODERN_VERSIONS, ...LEGACY_VERSI
 
 const DEFAULT_LEGACY_VERSION = "2025-06-18";
 
-/** Error codes. -32020/-32022 are from the MCP-reserved range (2026-07-28). */
+/** The error codes. -32020 and -32022 are in the MCP range (2026-07-28). */
 const HEADER_MISMATCH = -32020;
 const UNSUPPORTED_PROTOCOL_VERSION = -32022;
 const PARSE_ERROR = -32700;
@@ -35,7 +40,7 @@ const INVALID_PARAMS = -32602;
 const META_PROTOCOL_VERSION = "io.modelcontextprotocol/protocolVersion";
 const META_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
 
-/** Freshness hint for cacheable list results: this content changes rarely. */
+/** The cache time for a list result. This content changes very little. */
 const TTL_MS = 3_600_000;
 
 type Json = Record<string, unknown>;
@@ -70,37 +75,37 @@ const TOOLS = [
   {
     name: "get_bio",
     title: "Get biography",
-    description: "Short professional biography of Jaroslav Kazejev.",
+    description: "The short professional biography of Jaroslav Kazejev.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "get_contact_info",
     title: "Get contact info",
-    description: "Public contact details and profile links.",
+    description: "The public contact details and the profile links.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "list_projects",
     title: "List projects",
-    description: "Notable projects and work.",
+    description: "The projects and the work.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "list_skills",
     title: "List skills",
-    description: "Technical and professional skills.",
+    description: "The technical and professional skills.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
 ] as const;
-// Returned in this (alphabetical, stable) order: the spec asks for a
-// deterministic order so clients can cache and prompt-cache hit rates hold.
+// The server sends the tools in this alphabetical order. The specification
+// asks for a constant order. Thus the client can keep the list in a cache.
 
 const RESOURCES = [
   {
     uri: PROFILE_URI,
     name: "profile",
     title: "Full profile",
-    description: "Bio, skills, projects and contact links as a single JSON document.",
+    description: "The biography, the skills, the projects and the contact links in one JSON document.",
     mimeType: "application/json",
   },
 ] as const;
@@ -144,8 +149,8 @@ function unsupportedVersion(id: unknown, requested: string | null): Json {
 }
 
 /**
- * Decode the `=?base64?...?=` sentinel used for header values that cannot be
- * represented as plain ASCII.
+ * Decode a header value. The client uses the `=?base64?...?=` format when the
+ * value has characters that are not plain ASCII.
  */
 export function decodeHeaderValue(value: string): string {
   if (value.startsWith("=?base64?") && value.endsWith("?=")) {
@@ -160,7 +165,7 @@ export function decodeHeaderValue(value: string): string {
   return value;
 }
 
-/** Methods whose `Mcp-Name` header mirrors a body field. */
+/** The methods that put a body field in the `Mcp-Name` header. */
 function nameSourceFor(method: string, params: Json): string | null {
   switch (method) {
     case "tools/call":
@@ -223,7 +228,7 @@ function handleModern(id: unknown, method: string, params: Json): { body: Json; 
     case "resources/read": {
       const uri = typeof params.uri === "string" ? params.uri : "";
       if (uri !== PROFILE_URI) {
-        // 2026-07-28 aligned resource-not-found with JSON-RPC Invalid Params.
+        // The 2026-07-28 revision changed this error to Invalid Params.
         return { status: 200, body: err(id, INVALID_PARAMS, `Resource not found: ${uri}`) };
       }
       return {
@@ -242,8 +247,8 @@ function handleModern(id: unknown, method: string, params: Json): { body: Json; 
       return { status: 200, body: ok(id, cacheable({ prompts: [] })) };
 
     default:
-      // Unknown method over Streamable HTTP is a 404 carrying -32601, which is
-      // how a client tells a modern server from a legacy HTTP+SSE endpoint.
+      // For an unknown method, the server sends 404 with error code -32601.
+      // A client uses this response to identify a modern server.
       return { status: 404, body: err(id, METHOD_NOT_FOUND, `Method not found: ${method}`) };
   }
 }
@@ -340,7 +345,7 @@ export function handle(req: HttpLike): HttpResult {
     return { status: 204, headers: { ...CORS_HEADERS }, body: "" };
   }
   if (req.method !== "POST") {
-    // 2026-07-28 removed the GET stream and the DELETE session teardown.
+    // The 2026-07-28 revision removed the GET stream and the DELETE method.
     return {
       status: 405,
       headers: { ...JSON_HEADERS, ...CORS_HEADERS, allow: "POST, OPTIONS" },
@@ -365,7 +370,7 @@ export function handle(req: HttpLike): HttpResult {
       : {};
   const id = "id" in message ? message.id : null;
 
-  // A notification (no id) is acknowledged and dropped.
+  // A notification has no id. The server accepts it and then removes it.
   if (!("id" in message) || message.id === null || message.id === undefined) {
     return { status: 202, headers: { ...CORS_HEADERS }, body: "" };
   }
@@ -375,8 +380,8 @@ export function handle(req: HttpLike): HttpResult {
     (MODERN_VERSIONS as readonly string[]).includes(versionHeader);
 
   if (!isModern) {
-    // Legacy clients: an unknown version header that is not a legacy version
-    // either is still a version we cannot serve.
+    // The header shows a version that is not modern and not legacy. Thus the
+    // server cannot supply this client.
     if (versionHeader !== null && !(LEGACY_VERSIONS as readonly string[]).includes(versionHeader)) {
       return jsonResponse(400, unsupportedVersion(id, versionHeader));
     }
@@ -384,7 +389,7 @@ export function handle(req: HttpLike): HttpResult {
     return jsonResponse(status, body);
   }
 
-  // --- modern: validate the mirrored headers against the body ---
+  // Modern era: compare the header values with the body values.
   const meta = typeof params._meta === "object" && params._meta !== null
     ? (params._meta as Json)
     : {};

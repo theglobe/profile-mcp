@@ -2,7 +2,7 @@
   "name": "profile-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "Personal MCP server for kazejev.com, running on Cloudflare Workers.",
+  "description": "Personal MCP server for kazejev.com. The server operates on Cloudflare Workers.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",

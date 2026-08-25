@@ -1,6 +1,6 @@
 /**
- * Cloudflare Worker entry point. Bridges the Workers fetch API to the
- * transport-agnostic handler in protocol.ts.
+ * The Cloudflare Worker entry point. This file connects the Workers fetch API
+ * to the handler in protocol.ts.
  */
 
 import { handle } from "./protocol.js";

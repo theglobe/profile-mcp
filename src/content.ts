@@ -1,21 +1,23 @@
 /**
- * All personal content lives here, isolated from protocol plumbing.
+ * All personal content. This file is separate from the protocol code.
  *
- * Seeded from public sources: the GitHub profile at github.com/theglobe and
- * the existing site at theglobe.github.io. Everything here is served publicly
- * to any agent that can reach the endpoint, so treat it as equivalent to the
- * homepage. Review and rewrite in your own words before deploying.
+ * The content comes from two public sources: the GitHub profile at
+ * github.com/theglobe and the site at theglobe.github.io.
+ *
+ * The server sends this content to each agent that connects to the endpoint.
+ * Thus the content is as public as the home page. Examine the content and
+ * write it again in your own words before you deploy the server.
  */
 
 export const SERVER_NAME = "kazejev-personal";
 export const SERVER_VERSION = "0.1.0";
 
 export const INSTRUCTIONS =
-  "Read-only server exposing public professional information about Jaroslav " +
-  "Kazejev: biography, skills, projects, and contact links. All tools take no " +
-  "arguments and return static content.";
+  "This server is read-only. It gives public professional information about " +
+  "Jaroslav Kazejev: the biography, the skills, the projects and the contact " +
+  "links. Each tool has no arguments and sends static content.";
 
-/** REVIEW: expanded from the one-line GitHub profile bio. */
+/** REVIEW: this text comes from the one-line GitHub profile biography. */
 export const BIO = `Jaroslav Kazejev — software developer based in Stockholm, Sweden.
 
 Works primarily in C# and .NET, Java on Android, and Python and shell scripting.
@@ -27,7 +29,7 @@ export interface Skill {
   category: string;
 }
 
-/** From the GitHub profile bio. REVIEW: add depth, years, or domains. */
+/** From the GitHub profile biography. REVIEW: add more detail. */
 export const SKILLS: Skill[] = [
   { name: "C#", category: "language" },
   { name: ".NET", category: "platform" },
@@ -46,17 +48,18 @@ export interface Project {
 export const PROJECTS: Project[] = [
   {
     name: "Master's thesis",
-    description: "Thesis published on the personal site.",
+    description: "The thesis. It is available on the personal site.",
     url: "https://kazejev.com/thesis.pdf",
   },
   {
     name: "profile-mcp",
     description:
-      "This MCP server — exposes the personal site's content to AI agents " +
-      "over Streamable HTTP, running on Cloudflare Workers.",
+      "This MCP server. It gives the content of the personal site to AI " +
+      "agents with the Streamable HTTP transport. It operates on Cloudflare " +
+      "Workers.",
     url: "https://github.com/theglobe/profile-mcp",
   },
-  // REVIEW: add real projects worth showing.
+  // REVIEW: add the correct projects.
 ];
 
 export interface ContactLink {
@@ -65,8 +68,8 @@ export interface ContactLink {
 }
 
 /**
- * No email address is included by default. Add one only if you want it
- * readable by any agent that reaches this server.
+ * This list has no email address. Add an email address only if each agent that
+ * connects to this server can read it.
  */
 export const CONTACT: ContactLink[] = [
   { kind: "website", value: "https://kazejev.com" },
