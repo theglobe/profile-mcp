@@ -1,22 +1,3 @@
-/**
- * The MCP methods. This file is independent of the transport and has no
- * dependencies.
- *
- * The server supports two protocol eras. Refer to the specification, section
- * "Versioning and Compatibility".
- *
- *   - Modern (2026-07-28): the server keeps no state. There is no initialize
- *     handshake and there is no session identifier. Each request contains the
- *     protocol version and the client identity in `_meta`. The client also puts
- *     these values in HTTP headers. The server must examine the headers.
- *   - Legacy (2025-03-26 to 2025-11-25): the client and the server do the
- *     initialize handshake. The server keeps this era because most clients
- *     still use it.
- *
- * The server selects the era for each request. If the `MCP-Protocol-Version`
- * header shows a modern version, the server uses the modern rules. If it does
- * not, the server uses the legacy rules.
- */
 
 import {
   BIO, CONTACT, INSTRUCTIONS, PROFILE_URI, PROJECTS,
@@ -29,7 +10,6 @@ export const SUPPORTED_VERSIONS: string[] = [...MODERN_VERSIONS, ...LEGACY_VERSI
 
 const DEFAULT_LEGACY_VERSION = "2025-06-18";
 
-/** The error codes. -32020 and -32022 are in the MCP range (2026-07-28). */
 const HEADER_MISMATCH = -32020;
 const UNSUPPORTED_PROTOCOL_VERSION = -32022;
 const PARSE_ERROR = -32700;
@@ -40,7 +20,6 @@ const INVALID_PARAMS = -32602;
 const META_PROTOCOL_VERSION = "io.modelcontextprotocol/protocolVersion";
 const META_SERVER_INFO = "io.modelcontextprotocol/serverInfo";
 
-/** The cache time for a list result. This content changes very little. */
 const TTL_MS = 3_600_000;
 
 type Json = Record<string, unknown>;
@@ -69,8 +48,6 @@ const CORS_HEADERS: Record<string, string> = {
   "access-control-max-age": "86400",
 };
 
-/* ------------------------------------------------------------------ tools */
-
 const TOOLS = [
   {
     name: "get_bio",
@@ -97,8 +74,7 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
 ] as const;
-// The server sends the tools in this alphabetical order. The specification
-// asks for a constant order. Thus the client can keep the list in a cache.
+// Keep this alphabetical order. The specification needs a constant order.
 
 const RESOURCES = [
   {
@@ -129,8 +105,6 @@ function callTool(name: string): { text: string; structured: Json } | null {
   }
 }
 
-/* ----------------------------------------------------------- JSON-RPC glue */
-
 function ok(id: unknown, result: Json): Json {
   return { jsonrpc: "2.0", id, result };
 }
@@ -148,10 +122,6 @@ function unsupportedVersion(id: unknown, requested: string | null): Json {
   });
 }
 
-/**
- * Decode a header value. The client uses the `=?base64?...?=` format when the
- * value has characters that are not plain ASCII.
- */
 export function decodeHeaderValue(value: string): string {
   if (value.startsWith("=?base64?") && value.endsWith("?=")) {
     const encoded = value.slice("=?base64?".length, -"?=".length);
@@ -165,7 +135,6 @@ export function decodeHeaderValue(value: string): string {
   return value;
 }
 
-/** The methods that put a body field in the `Mcp-Name` header. */
 function nameSourceFor(method: string, params: Json): string | null {
   switch (method) {
     case "tools/call":
@@ -177,8 +146,6 @@ function nameSourceFor(method: string, params: Json): string | null {
       return null;
   }
 }
-
-/* -------------------------------------------------------------- modern era */
 
 function modernResult(result: Json): Json {
   return { resultType: "complete", ...result, _meta: { [META_SERVER_INFO]: SERVER_INFO } };
@@ -228,7 +195,7 @@ function handleModern(id: unknown, method: string, params: Json): { body: Json; 
     case "resources/read": {
       const uri = typeof params.uri === "string" ? params.uri : "";
       if (uri !== PROFILE_URI) {
-        // The 2026-07-28 revision changed this error to Invalid Params.
+        // -32602 is correct. The 2026-07-28 revision replaced -32002.
         return { status: 200, body: err(id, INVALID_PARAMS, `Resource not found: ${uri}`) };
       }
       return {
@@ -247,13 +214,10 @@ function handleModern(id: unknown, method: string, params: Json): { body: Json; 
       return { status: 200, body: ok(id, cacheable({ prompts: [] })) };
 
     default:
-      // For an unknown method, the server sends 404 with error code -32601.
-      // A client uses this response to identify a modern server.
+      // Keep the 404 status. A client uses it to identify a modern server.
       return { status: 404, body: err(id, METHOD_NOT_FOUND, `Method not found: ${method}`) };
   }
 }
-
-/* -------------------------------------------------------------- legacy era */
 
 function handleLegacy(id: unknown, method: string, params: Json): { body: Json; status: number } {
   switch (method) {
@@ -327,8 +291,6 @@ function handleLegacy(id: unknown, method: string, params: Json): { body: Json; 
   }
 }
 
-/* ------------------------------------------------------------------ entry */
-
 function jsonResponse(status: number, body: Json): HttpResult {
   return {
     status,
@@ -345,7 +307,7 @@ export function handle(req: HttpLike): HttpResult {
     return { status: 204, headers: { ...CORS_HEADERS }, body: "" };
   }
   if (req.method !== "POST") {
-    // The 2026-07-28 revision removed the GET stream and the DELETE method.
+    // Keep the 405 status. The 2026-07-28 revision removed GET and DELETE.
     return {
       status: 405,
       headers: { ...JSON_HEADERS, ...CORS_HEADERS, allow: "POST, OPTIONS" },
@@ -370,7 +332,6 @@ export function handle(req: HttpLike): HttpResult {
       : {};
   const id = "id" in message ? message.id : null;
 
-  // A notification has no id. The server accepts it and then removes it.
   if (!("id" in message) || message.id === null || message.id === undefined) {
     return { status: 202, headers: { ...CORS_HEADERS }, body: "" };
   }
@@ -380,8 +341,6 @@ export function handle(req: HttpLike): HttpResult {
     (MODERN_VERSIONS as readonly string[]).includes(versionHeader);
 
   if (!isModern) {
-    // The header shows a version that is not modern and not legacy. Thus the
-    // server cannot supply this client.
     if (versionHeader !== null && !(LEGACY_VERSIONS as readonly string[]).includes(versionHeader)) {
       return jsonResponse(400, unsupportedVersion(id, versionHeader));
     }
@@ -389,7 +348,6 @@ export function handle(req: HttpLike): HttpResult {
     return jsonResponse(status, body);
   }
 
-  // Modern era: compare the header values with the body values.
   const meta = typeof params._meta === "object" && params._meta !== null
     ? (params._meta as Json)
     : {};

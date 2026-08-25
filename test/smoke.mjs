@@ -1,7 +1,3 @@
-/**
- * The protocol tests. These tests use the handler directly. Thus they do not
- * need a Workers runtime.
- */
 
 import assert from "node:assert/strict";
 import { handle } from "../dist/protocol.js";
