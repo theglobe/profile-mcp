@@ -94,3 +94,23 @@ the repository name and from the Worker name. Do not change `SERVER_NAME` in
 
 - Put the correct biography, skills and projects in `src/content.ts`.
 - Make a decision about a contact email address. The file has no email address.
+
+## Registry
+
+The server is in the official MCP Registry as `com.kazejev/profile`.
+
+    https://registry.modelcontextprotocol.io/v0/servers?search=kazejev
+
+`server.json` holds the registry entry. To publish a new version, change the
+`version` field to match `SERVER_VERSION` in `src/content.ts`, then:
+
+    mcp-publisher login dns --domain kazejev.com --private-key <HEX>
+    mcp-publisher publish
+
+The namespace `com.kazejev` is proved by a TXT record on `kazejev.com`:
+
+    v=MCPv1; k=ed25519; p=Z3Hxdi1IjSf8w1F4nnlcPJHX/X72+rsaXY4DTJJj5Ns=
+
+That record must stay in place. The matching private key is not in this
+repository. To use a different key, generate a new pair and replace the TXT
+record with the new public key.

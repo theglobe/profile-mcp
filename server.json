@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.kazejev/profile",
+  "description": "Profile server for kazejev.com: biography, skills, projects and education.",
+  "version": "0.3.0",
+  "websiteUrl": "https://kazejev.com",
+  "repository": {
+    "url": "https://github.com/theglobe/profile-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.kazejev.com/mcp"
+    }
+  ]
+}
