@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "profile-mcp",
+  "account_id": "4ae73f52e49319141cbd139494ba9e1c",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-01",
   "observability": { "enabled": true }
