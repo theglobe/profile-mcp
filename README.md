@@ -1,116 +1,73 @@
 # profile-mcp
 
-Personal MCP server for [kazejev.com](https://kazejev.com). The server operates
-on Cloudflare Workers. The server is read-only: it gives a biography, skills,
-projects and contact links to AI agents. The server has no runtime
-dependencies.
+An MCP server that answers questions about Jaroslav Kazejev: biography,
+skills, projects and education. It is read-only, it needs no authentication,
+and it has no runtime dependencies.
 
-## Language
+**Endpoint:** `https://mcp.kazejev.com/mcp`
 
-This project uses Simplified Technical English (ASD-STE100). Write all
-documentation and all code comments in this style:
+## Connect
 
-- Keep sentences short. Use a maximum of 20 words for an instruction.
-- Use the active voice.
-- Use one word for one meaning. Use the same word for the same thing.
-- Write one instruction in one sentence.
+With the Claude Code CLI:
+
+    claude mcp add --transport http kazejev https://mcp.kazejev.com/mcp
+
+With a client that reads a JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "kazejev": {
+      "type": "http",
+      "url": "https://mcp.kazejev.com/mcp"
+    }
+  }
+}
+```
+
+## Tools
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `get_profile_summary` | none | The complete profile in one response: headline, location, work status, focus, the strongest work, the main skills, education and links |
+| `query_profile` | `topic` | The projects, skills and education that match the topic, with the detail behind each one |
+| `get_bio` | none | The short professional biography |
+| `list_skills` | none | The technical and professional skills |
+| `list_projects` | none | The projects and the work |
+| `get_contact_info` | none | The public contact details and profile links |
+
+One resource, `kazejev://profile`, holds the same content as one JSON
+document.
 
 ## Protocol support
 
-The server supports two protocol eras.
-
-The MCP `2026-07-28` revision removed the `initialize` handshake. It also
-removed the protocol-level sessions. Thus a server for the new revision is very
-different from a server for the older revisions. Most clients still use the
-older revisions. Therefore this server supports the two eras on one endpoint.
+The server answers two protocol eras on the same endpoint, and selects the
+era for each request.
 
 | Era | Versions | Description |
 |---|---|---|
-| Modern | `2026-07-28` | The server keeps no state. Each request contains the version, the identity and the capabilities in `_meta`. The client also puts these values in HTTP headers. The server examines the headers. The server has the `server/discover` method. |
+| Modern | `2026-07-28` | The server keeps no state. Each request carries its version, identity and capabilities in `_meta` and in HTTP headers, which the server examines. `server/discover` is available. |
 | Legacy | `2025-11-25`, `2025-06-18`, `2025-03-26` | The client and the server do the `initialize` handshake. |
 
-The server selects the era for each request. If the `MCP-Protocol-Version`
-header shows a modern version, the server uses the modern rules. If it does
-not, the server uses the legacy rules.
+The `2026-07-28` revision removed the `initialize` handshake and the
+protocol-level sessions. Most clients still use the older revisions, thus the
+server keeps both.
 
-The modern era has these rules:
+Notable behaviour in the modern era:
 
-- The server sends 405 for a GET request and for a DELETE request. The GET
-  stream and the session teardown are no longer in the protocol.
-- The client must send the `Mcp-Method` header. For `tools/call`,
-  `resources/read` and `prompts/get`, the client must also send the `Mcp-Name`
-  header.
-- If a header value disagrees with the body value, the server sends 400 and
-  error code `-32020` (`HeaderMismatch`). The server first decodes the
-  `=?base64?…?=` format, then compares the two values.
-- If the server does not support the protocol version, the server sends 400 and
-  error code `-32022`. The error data shows the supported versions.
-- If the method is unknown, the server sends 404 and error code `-32601`. A
-  client uses this response to identify a modern server.
-- A list result contains `ttlMs` and `cacheScope`. Each result contains
-  `resultType`.
+- `GET` and `DELETE` return 405. The GET stream and the session teardown are
+  no longer in the protocol.
+- A header that disagrees with the body returns 400 and `-32020`.
+- An unsupported version returns 400 and `-32022` with the supported list.
+- An unknown method returns 404 and `-32601`.
 
-The server does not have `subscriptions/listen`, the MRTR input requests, or
-the tasks extension. The server does not need them, because each tool is static
-and has no arguments.
+## Where else this server appears
 
-## Endpoint
+- Registry entry: `com.kazejev/profile` in the
+  [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=kazejev)
+- Server card: <https://kazejev.com/.well-known/mcp/server-card.json>
+- Site: <https://kazejev.com>
 
-`POST /mcp`. The server sends 404 for all other paths.
+## Development and maintenance
 
-## Files
-
-    src/content.ts    All personal content. You change this file frequently.
-    src/protocol.ts   The MCP methods. This file is independent of the transport.
-    src/index.ts      The Cloudflare Worker entry point.
-    test/smoke.mjs    The protocol tests.
-
-## Development
-
-    npm install
-    npm run typecheck
-    npm test          # Compiles the code, then does the tests.
-    npm run dev       # Starts wrangler dev.
-
-## Deployment
-
-    npx wrangler login
-    npx wrangler deploy
-
-Then add the custom domain `mcp.kazejev.com` in the Cloudflare dashboard. Go to
-Workers & Pages, then this Worker, then Settings, then Domains & Routes.
-
-## Server card
-
-The repository `theglobe/theglobe.github.io` sends a discovery card at
-`/.well-known/mcp/server-card.json`. The `protocolVersion` field and the
-`transport.endpoint` field in the card must agree with this server.
-
-The card gives the server name `jaroslavkazejev-profile`. This name is different from
-the repository name and from the Worker name. Do not change `SERVER_NAME` in
-`src/content.ts` unless you also change the card.
-
-## To do
-
-- Put the correct biography, skills and projects in `src/content.ts`.
-- Make a decision about a contact email address. The file has no email address.
-
-## Registry
-
-The server is in the official MCP Registry as `com.kazejev/profile`.
-
-    https://registry.modelcontextprotocol.io/v0/servers?search=kazejev
-
-`server.json` holds the registry entry. To publish a new version, change the
-`version` field to match `SERVER_VERSION` in `src/content.ts`, then:
-
-    mcp-publisher login dns --domain kazejev.com --private-key <HEX>
-    mcp-publisher publish
-
-The namespace `com.kazejev` is proved by a TXT record on `kazejev.com`:
-
-    v=MCPv1; k=ed25519; p=Z3Hxdi1IjSf8w1F4nnlcPJHX/X72+rsaXY4DTJJj5Ns=
-
-That record must stay in place. The matching private key is not in this
-repository. To use a different key, generate a new pair and replace the TXT
-record with the new public key.
+See [docs/maintenance.md](docs/maintenance.md).

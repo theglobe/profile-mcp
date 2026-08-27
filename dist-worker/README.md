@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "profile-mcp" generated at 2026-08-27T19:25:07.492Z.
