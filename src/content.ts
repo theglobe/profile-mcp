@@ -4,8 +4,8 @@
  */
 
 // This name must agree with serverInfo.name in the published server card.
-export const SERVER_NAME = "kazejev-personal";
-export const SERVER_VERSION = "0.3.0";
+export const SERVER_NAME = "jaroslavkazejev-profile";
+export const SERVER_VERSION = "0.3.1";
 
 export const INSTRUCTIONS =
   "This server is read-only. It gives the professional profile of Jaroslav " +

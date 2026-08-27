@@ -86,7 +86,7 @@ The repository `theglobe/theglobe.github.io` sends a discovery card at
 `/.well-known/mcp/server-card.json`. The `protocolVersion` field and the
 `transport.endpoint` field in the card must agree with this server.
 
-The card gives the server name `kazejev-personal`. This name is different from
+The card gives the server name `jaroslavkazejev-profile`. This name is different from
 the repository name and from the Worker name. Do not change `SERVER_NAME` in
 `src/content.ts` unless you also change the card.
 

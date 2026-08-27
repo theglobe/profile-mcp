@@ -29,7 +29,7 @@ check("server/discover sends the versions and the capabilities", () => {
   assert.equal(r.resultType, "complete");
   assert.ok(r.supportedVersions.includes(MODERN));
   assert.deepEqual(r.capabilities, { tools: {}, resources: {} });
-  assert.equal(r._meta["io.modelcontextprotocol/serverInfo"].name, "kazejev-personal");
+  assert.equal(r._meta["io.modelcontextprotocol/serverInfo"].name, "jaroslavkazejev-profile");
   assert.equal(typeof r.ttlMs, "number");
   assert.equal(r.cacheScope, "public");
 });
@@ -182,7 +182,7 @@ check("initialize selects a legacy version", () => {
   });
   const r = json(res).result;
   assert.equal(r.protocolVersion, "2025-06-18");
-  assert.equal(r.serverInfo.name, "kazejev-personal");
+  assert.equal(r.serverInfo.name, "jaroslavkazejev-profile");
   assert.equal(r.resultType, undefined, "a legacy result must not have resultType");
 });
 

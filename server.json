@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.kazejev/profile",
   "description": "Profile server for kazejev.com: biography, skills, projects and education.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "websiteUrl": "https://kazejev.com",
   "repository": {
     "url": "https://github.com/theglobe/profile-mcp",
